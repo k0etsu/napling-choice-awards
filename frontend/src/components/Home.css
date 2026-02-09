@@ -1,0 +1,26 @@
+.voted-indicator {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.vote-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.product-card.border-primary {
+  border: 2px solid var(--accent-color) !important;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2) !important;
+}
+
+body.dark-mode .voted-indicator {
+  color: var(--accent-color);
+}
+
+body.dark-mode .product-card.border-primary {
+  border: 2px solid var(--accent-color) !important;
+  box-shadow: 0 4px 12px rgba(110, 213, 245, 0.2) !important;
+}

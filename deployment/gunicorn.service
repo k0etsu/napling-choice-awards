@@ -1,0 +1,16 @@
+[Unit]
+Description=Napling Choice Awards Gunicorn daemon
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/napling-choice-awards/backend
+Environment="PATH=/var/www/napling-choice-awards/backend/venv/bin"
+EnvironmentFile=/var/www/napling-choice-awards/backend/.env
+ExecStart=/var/www/napling-choice-awards/backend/venv/bin/gunicorn --workers 3 --bind unix:napling-choice-awards.sock -m 007 app:app
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
