@@ -54,3 +54,44 @@ body.dark-mode .floating-alerts .alert {
     opacity: 1;
   }
 }
+
+/* Social media links in navbar */
+.social-link-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem !important;
+  color: var(--bs-navbar-color) !important;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.social-link-navbar:hover {
+  transform: scale(1.1);
+}
+
+/* YouTube specific hover color */
+.social-link-navbar[href*="youtube"]:hover {
+  color: #FF0000 !important;
+}
+
+/* Twitter specific hover color */
+.social-link-navbar[href*="x.com"]:hover {
+  color: #1DA1F2 !important;
+}
+
+body.dark-mode .social-link-navbar {
+  color: var(--bs-navbar-dark-color) !important;
+}
+
+body.dark-mode .social-link-navbar[href*="youtube"]:hover {
+  color: #FF0000 !important;
+}
+
+body.dark-mode .social-link-navbar[href*="x.com"]:hover {
+  color: #1DA1F2 !important;
+}
+
+.social-link-navbar svg {
+  width: 20px;
+  height: 20px;
+}
