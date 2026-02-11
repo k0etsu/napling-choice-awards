@@ -95,3 +95,24 @@ body.dark-mode .social-link-navbar[href*="x.com"]:hover {
   width: 20px;
   height: 20px;
 }
+
+/* GitHub footer link */
+.github-footer-link {
+  color: var(--text-dark) !important;
+  transition: color 0.2s ease, transform 0.2s ease;
+  text-decoration: none !important;
+}
+
+.github-footer-link:hover {
+  color: var(--accent-color) !important;
+  transform: scale(1.1);
+  text-decoration: none !important;
+}
+
+body.dark-mode .github-footer-link {
+  color: var(--text-dark-mode) !important;
+}
+
+body.dark-mode .github-footer-link:hover {
+  color: var(--accent-color) !important;
+}
