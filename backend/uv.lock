@@ -104,8 +104,22 @@ wheels = [
 ]
 
 [[package]]
+name = "flask-jwt-extended"
+version = "4.6.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "flask" },
+    { name = "pyjwt" },
+    { name = "werkzeug" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9a/ea/2f97d46df8deb419ff98c8931cd7a3a142e967ac33522a2f2204449eee52/Flask-JWT-Extended-4.6.0.tar.gz", hash = "sha256:9215d05a9413d3855764bcd67035e75819d23af2fafb6b55197eb5a3313fdfb2", size = 34263, upload-time = "2023-12-13T05:29:37.562Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/be/f7/b5415a5ec78666408cd9af9e8163e2953374808d222625cff33f64adfd2a/Flask_JWT_Extended-4.6.0-py2.py3-none-any.whl", hash = "sha256:63a28fc9731bcc6c4b8815b6f954b5904caa534fc2ae9b93b1d3ef12930dca95", size = 22676, upload-time = "2023-12-13T05:29:35.618Z" },
+]
+
+[[package]]
 name = "flask-limiter"
-version = "3.5.0"
+version = "3.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "flask" },
@@ -114,9 +128,9 @@ dependencies = [
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/03/dae2279d45982b603ea001dcc1a4d0d6cc7f383c9f52a2e1563fcff6d1c4/Flask-Limiter-3.5.0.tar.gz", hash = "sha256:13a3491b994c49f7cb4706587a38ca47e8162b576530472df38be68104f299c0", size = 301919, upload-time = "2023-08-31T01:03:56.183Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/81/271b526492252d1befe67f1f8239a21d192e002decbb27396147a478fd4c/flask_limiter-3.7.0.tar.gz", hash = "sha256:e474462505f6dd0d776db16c46092e9a065ebcb30b10aed0caf54c6b9a4a471a", size = 301800, upload-time = "2024-05-19T15:56:11.528Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a2/ff/2dc82d9517172b67c2f5b13884777be9fe644cbfd6c52600076747d2f125/Flask_Limiter-3.5.0-py3-none-any.whl", hash = "sha256:dbda4174f44e6cb858c6eb75e7488186f2977dd5d33d7028ba1aabf179de1bee", size = 28611, upload-time = "2023-08-31T01:03:54.494Z" },
+    { url = "https://files.pythonhosted.org/packages/09/d3/f10e91728a0d33cce23e46eb05948dc38e959018cddf15103af0e08eeec6/Flask_Limiter-3.7.0-py3-none-any.whl", hash = "sha256:4318382f17ecb09848bc6d0f7bc4bb1bf89bcf162200bf47b7b969126693bfda", size = 28636, upload-time = "2024-05-19T15:56:09.599Z" },
 ]
 
 [[package]]
@@ -258,6 +272,7 @@ dependencies = [
     { name = "flask" },
     { name = "flask-caching" },
     { name = "flask-cors" },
+    { name = "flask-jwt-extended" },
     { name = "flask-limiter" },
     { name = "gunicorn" },
     { name = "pymongo" },
@@ -271,7 +286,8 @@ requires-dist = [
     { name = "flask", specifier = "==3.0.3" },
     { name = "flask-caching", specifier = "==2.1.0" },
     { name = "flask-cors", specifier = "==4.0.0" },
-    { name = "flask-limiter", specifier = "==3.5.0" },
+    { name = "flask-jwt-extended", specifier = "==4.6.0" },
+    { name = "flask-limiter", specifier = "==3.7.0" },
     { name = "gunicorn", specifier = "==20.1.0" },
     { name = "pymongo", specifier = "==4.3.3" },
     { name = "python-dotenv", specifier = "==1.0.0" },
@@ -307,6 +323,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887", size = 4968631, upload-time = "2025-06-21T13:39:12.283Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b", size = 1225217, upload-time = "2025-06-21T13:39:07.939Z" },
+]
+
+[[package]]
+name = "pyjwt"
+version = "2.11.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/5a/b46fa56bf322901eee5b0454a34343cdbdae202cd421775a8ee4e42fd519/pyjwt-2.11.0.tar.gz", hash = "sha256:35f95c1f0fbe5d5ba6e43f00271c275f7a1a4db1dab27bf708073b75318ea623", size = 98019, upload-time = "2026-01-30T19:59:55.694Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6f/01/c26ce75ba460d5cd503da9e13b21a33804d38c2165dec7b716d06b13010c/pyjwt-2.11.0-py3-none-any.whl", hash = "sha256:94a6bde30eb5c8e04fee991062b534071fd1439ef58d2adc9ccb823e7bcd0469", size = 28224, upload-time = "2026-01-30T19:59:54.539Z" },
 ]
 
 [[package]]

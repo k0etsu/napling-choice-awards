@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Container, Card, Form, Button, Table, Spinner, Alert, Modal, Badge } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 
 const Admin = () => {
   const [categories, setCategories] = useState([]);
@@ -9,19 +10,59 @@ const Admin = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [expandedCategories, setExpandedCategories] = useState(new Set());
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Modal states
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showProductModal, setShowProductModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [editingProduct, setEditingProduct] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageInputMode, setImageInputMode] = useState('upload'); // 'upload' or 'url'
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [tempImageFile, setTempImageFile] = useState(null);
+  const [tempImagePreview, setTempImagePreview] = useState('');
+
+  // Password change form
+  const [passwordForm, setPasswordForm] = useState({
+    current_password: '',
+    new_password: '',
+    confirm_password: ''
+  });
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    // Check authentication
+    const token = localStorage.getItem('adminToken');
+    const user = localStorage.getItem('adminUser');
+
+    if (!token || !user) {
+      navigate('/login');
+      return;
+    }
+
+    // Set up axios interceptor for authentication
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    setCurrentUser(user);
+
+    // Verify token is still valid
+    const verifyAuth = async () => {
+      try {
+        await axios.get('/api/auth/verify');
+        fetchData();
+      } catch (err) {
+        // Token is invalid, redirect to login
+        localStorage.removeItem('adminToken');
+        localStorage.removeItem('adminUser');
+        delete axios.defaults.headers.common['Authorization'];
+        navigate('/login');
+      }
+    };
+
+    verifyAuth();
+  }, [navigate]);
 
   const fetchData = async () => {
     try {
@@ -87,6 +128,8 @@ const Admin = () => {
       category_id: categoryId,
       isNewProduct: true
     });
+    setTempImageFile(null);
+    setTempImagePreview('');
     setShowProductModal(true);
   };
 
@@ -106,7 +149,20 @@ const Admin = () => {
 
   const handleUpdateProduct = async (productId) => {
     try {
-      await axios.put(`/api/products/${productId}`, editingProduct);
+      let productData = { ...editingProduct };
+
+      // Upload image if there's a temporary file
+      if (tempImageFile) {
+        const imageUrl = await uploadImageAndSetUrl(tempImageFile);
+        if (imageUrl) {
+          productData.image_url = imageUrl;
+        } else {
+          // If upload fails, don't submit the form
+          return;
+        }
+      }
+
+      await axios.put(`/api/products/${productId}`, productData);
       setSuccess('Product updated successfully!');
       setShowProductModal(false);
       setEditingProduct(null);
@@ -171,6 +227,8 @@ const Admin = () => {
 
   const openProductModal = (product = null) => {
     setEditingProduct(product);
+    setTempImageFile(null);
+    setTempImagePreview('');
     setShowProductModal(true);
   };
 
@@ -183,10 +241,27 @@ const Admin = () => {
     setShowProductModal(false);
     setEditingProduct(null);
     setSelectedCategoryId(null);
+    setTempImageFile(null);
+    setTempImagePreview('');
   };
 
-  const handleImageUpload = async (file) => {
+  const handleImagePreview = (file) => {
     if (!file) return;
+
+    // Create preview URL for the selected file
+    const previewUrl = URL.createObjectURL(file);
+    setTempImageFile(file);
+    setTempImagePreview(previewUrl);
+
+    // Update the editingProduct with a placeholder that will be replaced on submission
+    setEditingProduct(prev => ({
+      ...prev,
+      image_url: 'temp-preview'
+    }));
+  };
+
+  const uploadImageAndSetUrl = async (file) => {
+    if (!file) return null;
 
     setUploadingImage(true);
     const formData = new FormData();
@@ -225,11 +300,25 @@ const Admin = () => {
 
   const handleProductSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      await axios.post('/api/products', {
+      let productData = {
         ...editingProduct,
         category_id: selectedCategoryId
-      });
+      };
+
+      // Upload image if there's a temporary file
+      if (tempImageFile) {
+        const imageUrl = await uploadImageAndSetUrl(tempImageFile);
+        if (imageUrl) {
+          productData.image_url = imageUrl;
+        } else {
+          // If upload fails, don't submit the form
+          return;
+        }
+      }
+
+      await axios.post('/api/products', productData);
       setSuccess('Product created successfully!');
       closeProductModal();
       fetchData();
@@ -238,6 +327,66 @@ const Admin = () => {
       setError('Failed to create product. Please try again.');
       setTimeout(() => setError(''), 3000);
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminUser');
+    delete axios.defaults.headers.common['Authorization'];
+    navigate('/login');
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+
+    if (passwordForm.new_password !== passwordForm.confirm_password) {
+      setError('New passwords do not match');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    if (passwordForm.new_password.length < 6) {
+      setError('New password must be at least 6 characters long');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
+    try {
+      await axios.post('/api/auth/change-password', {
+        current_password: passwordForm.current_password,
+        new_password: passwordForm.new_password
+      });
+
+      setSuccess('Password changed successfully!');
+      setPasswordForm({
+        current_password: '',
+        new_password: '',
+        confirm_password: ''
+      });
+      setShowPasswordModal(false);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to change password');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
+  const openPasswordModal = () => {
+    setPasswordForm({
+      current_password: '',
+      new_password: '',
+      confirm_password: ''
+    });
+    setShowPasswordModal(true);
+  };
+
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordForm({
+      current_password: '',
+      new_password: '',
+      confirm_password: ''
+    });
   };
 
   if (loading) {
@@ -254,6 +403,15 @@ const Admin = () => {
       <div className="text-center mb-5">
         <h1 className="display-4">Admin Panel</h1>
         <p className="lead">Manage categories and products</p>
+        <div className="d-flex justify-content-center align-items-center gap-3">
+          <span className="text-muted">Logged in as: <strong>{currentUser}</strong></span>
+          <Button variant="outline-primary" size="sm" onClick={openPasswordModal}>
+            Change Password
+          </Button>
+          <Button variant="outline-danger" size="sm" onClick={handleLogout}>
+            Logout
+          </Button>
+        </div>
       </div>
 
       <div className="floating-alerts">
@@ -556,17 +714,10 @@ const Admin = () => {
                     <Form.Control
                       type="file"
                       accept="image/*"
-                      onChange={async (e) => {
+                      onChange={(e) => {
                         const file = e.target.files[0];
                         if (file) {
-                          const imageUrl = await handleImageUpload(file);
-                          if (imageUrl) {
-                            if (editingProduct?.isNewProduct) {
-                              setEditingProduct({ ...editingProduct, image_url: imageUrl });
-                            } else if (editingProduct) {
-                              setEditingProduct({ ...editingProduct, image_url: imageUrl });
-                            }
-                          }
+                          handleImagePreview(file);
                         }
                       }}
                       disabled={uploadingImage}
@@ -575,12 +726,12 @@ const Admin = () => {
                       <Spinner animation="border" size="sm" className="ms-2" />
                     )}
                   </div>
-                  {editingProduct?.image_url && (
+                  {(tempImagePreview || (editingProduct?.image_url && editingProduct.image_url !== 'temp-preview')) && (
                     <div className="mt-2">
                       <img
-                        src={editingProduct.image_url.startsWith('http') ?
+                        src={tempImagePreview || (editingProduct.image_url.startsWith('http') ?
                           editingProduct.image_url :
-                          `http://localhost:5000${editingProduct.image_url}`}
+                          `http://localhost:5001${editingProduct.image_url}`)}
                         alt="Preview"
                         style={{ maxWidth: '200px', maxHeight: '150px' }}
                         className="img-thumbnail"
@@ -589,7 +740,11 @@ const Admin = () => {
                         variant="danger"
                         size="sm"
                         className="ms-2"
-                        onClick={() => handleRemoveProductImage(editingProduct.id)}
+                        onClick={() => {
+                          setTempImageFile(null);
+                          setTempImagePreview('');
+                          setEditingProduct(prev => ({ ...prev, image_url: '' }));
+                        }}
                         title="Remove image"
                       >
                         Remove Image
@@ -610,14 +765,17 @@ const Admin = () => {
                       } else if (editingProduct) {
                         setEditingProduct({ ...editingProduct, image_url: e.target.value });
                       }
+                      // Clear temporary image when URL is changed
+                      setTempImageFile(null);
+                      setTempImagePreview('');
                     }}
                   />
-                  {editingProduct?.image_url && (
+                  {editingProduct?.image_url && editingProduct.image_url !== 'temp-preview' && (
                     <div className="mt-2">
                       <img
                         src={editingProduct.image_url.startsWith('http') ?
                           editingProduct.image_url :
-                          `http://localhost:5000${editingProduct.image_url}`}
+                          `http://localhost:5001${editingProduct.image_url}`}
                         alt="Preview"
                         style={{ maxWidth: '200px', maxHeight: '150px' }}
                         className="img-thumbnail"
@@ -662,6 +820,57 @@ const Admin = () => {
                     {editingProduct?.isNewProduct ? 'Create' : 'Update'}
                   </Button>
                 </div>
+              </div>
+            </Form>
+          </Modal.Body>
+        </Modal>
+
+        {/* Password Change Modal */}
+        <Modal show={showPasswordModal} onHide={closePasswordModal}>
+          <Modal.Header closeButton>
+            <Modal.Title>Change Password</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form onSubmit={handlePasswordChange}>
+              <Form.Group className="mb-3">
+                <Form.Label>Current Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  value={passwordForm.current_password}
+                  onChange={(e) => setPasswordForm({...passwordForm, current_password: e.target.value})}
+                  required
+                />
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>New Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  value={passwordForm.new_password}
+                  onChange={(e) => setPasswordForm({...passwordForm, new_password: e.target.value})}
+                  required
+                  minLength="6"
+                />
+                <Form.Text className="text-muted">
+                  Password must be at least 6 characters long
+                </Form.Text>
+              </Form.Group>
+              <Form.Group className="mb-3">
+                <Form.Label>Confirm New Password</Form.Label>
+                <Form.Control
+                  type="password"
+                  value={passwordForm.confirm_password}
+                  onChange={(e) => setPasswordForm({...passwordForm, confirm_password: e.target.value})}
+                  required
+                  minLength="6"
+                />
+              </Form.Group>
+              <div className="d-flex justify-content-between">
+                <Button variant="secondary" onClick={closePasswordModal}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary">
+                  Change Password
+                </Button>
               </div>
             </Form>
           </Modal.Body>

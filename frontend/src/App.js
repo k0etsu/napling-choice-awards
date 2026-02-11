@@ -7,6 +7,7 @@ import './App.css';
 import Home from './components/Home';
 import Admin from './components/Admin';
 import Results from './components/Results';
+import Login from './components/Login';
 
 function AppContent() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -107,6 +108,7 @@ function AppContent() {
             <Route path="/" element={<Home />} />
             <Route path="/results" element={<Results />} />
             <Route path="/admin" element={<Admin />} />
+            <Route path="/login" element={<Login />} />
           </Routes>
         </Container>
       </main>

@@ -154,7 +154,7 @@ const Home = () => {
                     {product.image_url && (
                       <Card.Img
                         variant="top"
-                        src={product.image_url.startsWith('http') ? product.image_url : `http://localhost:5000${product.image_url}`}
+                        src={product.image_url.startsWith('http') ? product.image_url : `http://localhost:5001${product.image_url}`}
                         className="product-image"
                         alt={product.name}
                       />

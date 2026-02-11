@@ -1,6 +1,8 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from pymongo import MongoClient
 import os
@@ -18,6 +20,11 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'jwt-secret-string-change-in-production')
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = datetime.timedelta(hours=24)
+
+# Initialize JWT
+jwt = JWTManager(app)
 
 # Configure CORS with specific origins
 allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
@@ -75,6 +82,7 @@ db = client['napling_choice_awards']
 categories = db['categories']
 products = db['products']
 votes = db['votes']
+admin_users = db['admin_users']
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -134,6 +142,99 @@ def validate_product_data(data):
 
     return errors
 
+# Initialize default admin users
+def initialize_admin_users():
+    """Create default admin users if they don't exist"""
+    default_admins = [
+        {'username': 'admin', 'password': 'admin123'},
+        {'username': 'nimi', 'password': 'nimi123'}
+    ]
+
+    for admin_data in default_admins:
+        existing_admin = admin_users.find_one({'username': admin_data['username']})
+        if not existing_admin:
+            hashed_password = generate_password_hash(admin_data['password'])
+            admin_user = {
+                'username': admin_data['username'],
+                'password': hashed_password,
+                'created_at': datetime.datetime.now(datetime.UTC),
+                'role': 'admin'
+            }
+            admin_users.insert_one(admin_user)
+            print(f"Created default admin user: {admin_data['username']}")
+
+# Initialize admin users on startup
+initialize_admin_users()
+
+@app.route('/api/auth/login', methods=['POST'])
+@limiter.limit("10/minute")
+def login():
+    """Admin login endpoint"""
+    data = request.get_json()
+
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'error': 'Username and password are required'}), 400
+
+    username = data['username'].strip()
+    password = data['password']
+
+    # Find admin user
+    admin_user = admin_users.find_one({'username': username})
+
+    if not admin_user or not check_password_hash(admin_user['password'], password):
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    # Create access token
+    access_token = create_access_token(identity=username)
+
+    return jsonify({
+        'access_token': access_token,
+        'username': username,
+        'message': 'Login successful'
+    }), 200
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    """Change password for authenticated admin"""
+    current_user = get_jwt_identity()
+    data = request.get_json()
+
+    if not data or not data.get('current_password') or not data.get('new_password'):
+        return jsonify({'error': 'Current password and new password are required'}), 400
+
+    current_password = data['current_password']
+    new_password = data['new_password']
+
+    # Validate new password length
+    if len(new_password) < 6:
+        return jsonify({'error': 'New password must be at least 6 characters long'}), 400
+
+    # Get current user
+    admin_user = admin_users.find_one({'username': current_user})
+
+    if not admin_user or not check_password_hash(admin_user['password'], current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 401
+
+    # Update password
+    hashed_new_password = generate_password_hash(new_password)
+    admin_users.update_one(
+        {'username': current_user},
+        {'$set': {
+            'password': hashed_new_password,
+            'password_changed_at': datetime.datetime.now(datetime.UTC)
+        }}
+    )
+
+    return jsonify({'message': 'Password changed successfully'}), 200
+
+@app.route('/api/auth/verify', methods=['GET'])
+@jwt_required()
+def verify_token():
+    """Verify JWT token is valid"""
+    current_user = get_jwt_identity()
+    return jsonify({'username': current_user, 'valid': True}), 200
+
 @app.route('/api/upload', methods=['POST'])
 @limiter.limit("10/minute")
 def upload_file():
@@ -175,6 +276,7 @@ def get_categories():
 
 @app.route('/api/categories', methods=['POST'])
 @limiter.limit("20/minute")
+@jwt_required()
 def create_category():
     data = request.get_json()
 
@@ -218,6 +320,7 @@ def get_products():
 
 @app.route('/api/products', methods=['POST'])
 @limiter.limit("20/minute")
+@jwt_required()
 def create_product():
     data = request.get_json()
 
@@ -248,6 +351,7 @@ def create_product():
     return json.loads(json_util.dumps(product)), 201
 
 @app.route('/api/categories/<category_id>', methods=['PUT'])
+@jwt_required()
 def update_category(category_id):
     try:
         data = request.get_json()
@@ -285,6 +389,7 @@ def update_category(category_id):
         return {'error': 'Failed to update category'}, 500
 
 @app.route('/api/products/<product_id>', methods=['PUT'])
+@jwt_required()
 def update_product(product_id):
     try:
         data = request.get_json()
@@ -324,6 +429,7 @@ def update_product(product_id):
         return {'error': 'Failed to update product'}, 500
 
 @app.route('/api/categories/<category_id>', methods=['DELETE'])
+@jwt_required()
 def delete_category(category_id):
     try:
         # First check if category exists
@@ -361,6 +467,7 @@ def delete_category(category_id):
         return {'error': 'Failed to delete category'}, 500
 
 @app.route('/api/products/<product_id>/image', methods=['DELETE'])
+@jwt_required()
 def remove_product_image(product_id):
     try:
         # Get product details
@@ -397,6 +504,7 @@ def remove_product_image(product_id):
         return {'error': 'Failed to remove image'}, 500
 
 @app.route('/api/products/<product_id>', methods=['DELETE'])
+@jwt_required()
 def delete_product(product_id):
     try:
         # Get product details before deletion to retrieve image_url
