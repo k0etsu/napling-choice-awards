@@ -174,20 +174,6 @@ const Admin = () => {
     }
   };
 
-  const handleRemoveProductImage = async (productId) => {
-    try {
-      await axios.delete(`/api/products/${productId}/image`);
-      setSuccess('Product image removed successfully!');
-      // Update the editingProduct state to remove the image_url
-      setEditingProduct(prev => ({ ...prev, image_url: '' }));
-      fetchData();
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (err) {
-      setError('Failed to remove product image. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
   const handleDeleteCategory = async (categoryId) => {
     if (window.confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
       try {

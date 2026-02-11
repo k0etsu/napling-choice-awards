@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Table, Form, ProgressBar } from 'react-bootstrap';
+import { Container, Card, Alert, Spinner, Table, ProgressBar } from 'react-bootstrap';
 import axios from 'axios';
 import './Results.css';
 
@@ -8,17 +8,6 @@ const Results = () => {
   const [results, setResults] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  useEffect(() => {
-    // Fetch results for all locked categories
-    if (categories.length > 0) {
-      fetchAllResults();
-    }
-  }, [categories]);
 
   const fetchCategories = async () => {
     try {
@@ -47,6 +36,17 @@ const Results = () => {
 
     setResults(resultsData);
   };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    // Fetch results for all locked categories
+    if (categories.length > 0) {
+      fetchAllResults();
+    }
+  }, [categories]);
 
   if (loading) {
     return (

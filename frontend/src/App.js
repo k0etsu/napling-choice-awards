@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Navbar, Container, Nav } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
@@ -16,7 +16,6 @@ function AppContent() {
   });
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [navbarExpanded, setNavbarExpanded] = useState(false);
-  const location = useLocation();
 
   useEffect(() => {
     localStorage.setItem('darkMode', isDarkMode);
