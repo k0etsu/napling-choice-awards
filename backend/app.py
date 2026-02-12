@@ -39,8 +39,8 @@ config = {
 app.config.from_mapping(config)
 cache = Cache(app)
 
-# Upload configuration
-UPLOAD_FOLDER = 'uploads'
+# Upload configuration - place uploads in frontend build directory for deployment
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'build', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
@@ -283,6 +283,12 @@ def upload_file():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# Serve React static files
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'build', 'static')
+    return send_from_directory(static_dir, filename)
 
 @app.route('/api/categories', methods=['GET'])
 @cache.cached(timeout=600)  # Cache for 10 minutes
@@ -635,6 +641,16 @@ def get_results(category_id):
         del result['_id']
 
     return results
+
+# Serve React app for all non-API routes (catch-all)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_react_app(path):
+    build_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'build')
+    if path != "" and os.path.exists(os.path.join(build_dir, path)):
+        return send_from_directory(build_dir, path)
+    else:
+        return send_from_directory(build_dir, 'index.html')
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001)
