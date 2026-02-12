@@ -522,7 +522,7 @@ def remove_nominee_image(nominee_id):
 def delete_nominee(nominee_id):
     try:
         # Get nominee details before deletion to retrieve image_url
-        nominee = nomineses.find_one({'_id': ObjectId(nominee_id)})
+        nominee = nominees.find_one({'_id': ObjectId(nominee_id)})
         if not nominee:
             return {'error': 'Nominee not found'}, 404
 
@@ -552,7 +552,7 @@ def delete_nominee(nominee_id):
         else:
             return {'error': 'Nominee not found'}, 404
     except Exception as e:
-        return {'error': 'Failed to delete nominee'}, 500
+        return {'error': f'Failed to delete nominee {e}'}, 500
 
 @app.route('/api/vote', methods=['POST'])
 @limiter.limit("10/minute")
