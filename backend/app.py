@@ -495,10 +495,16 @@ def remove_nominee_image(nominee_id):
         if not nominee:
             return {'error': 'Nominee not found'}, 404
 
+        # Get filename from query parameter or extract from image_url
+        filename = request.args.get('filename')
+        if not filename:
+            # Extract filename from image_url if no query parameter
+            image_url = nominee.get('image_url', '')
+            if image_url and image_url.startswith('/uploads/'):
+                filename = image_url.replace('/uploads/', '')
+
         # Delete associated image file if it exists
-        image_url = nominee.get('image_url', '')
-        if image_url and image_url.startswith('/uploads/'):
-            filename = image_url.replace('/uploads/', '')
+        if filename:
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             try:
                 if os.path.exists(image_path):

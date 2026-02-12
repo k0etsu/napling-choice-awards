@@ -9,6 +9,12 @@ const Results = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Utility function to construct image URLs
+  const getImageUrl = (image_url) => {
+    if (!image_url) return '';
+    return image_url.startsWith('http') ? image_url : `/uploads/${image_url.split('/').pop()}`;
+  };
+
   const fetchCategories = async () => {
     try {
       const response = await axios.get('/api/categories');
@@ -96,7 +102,7 @@ const Results = () => {
                                     <div key={winner.nominee_id} className="text-center">
                                       {winner.nominee?.image_url && (
                                         <img
-                                          src={winner.nominee.image_url}
+                                          src={getImageUrl(winner.nominee.image_url)}
                                           alt={winner.nominee.name}
                                           className="winner-image mb-2"
                                           style={{ maxWidth: '120px', maxHeight: '120px' }}
@@ -111,7 +117,7 @@ const Results = () => {
                               <div>
                                 {results[category.id][0]?.nominee?.image_url && (
                                   <img
-                                    src={results[category.id][0].nominee.image_url}
+                                    src={getImageUrl(results[category.id][0].nominee.image_url)}
                                     alt={results[category.id][0].nominee.name}
                                     className="winner-image mb-3"
                                   />

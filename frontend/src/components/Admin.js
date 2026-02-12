@@ -33,6 +33,12 @@ const Admin = () => {
 
   const navigate = useNavigate();
 
+  // Utility function to construct image URLs
+  const getImageUrl = (image_url) => {
+    if (!image_url) return '';
+    return image_url.startsWith('http') ? image_url : `/uploads/${image_url.split('/').pop()}`;
+  };
+
   useEffect(() => {
     // Check authentication
     const token = localStorage.getItem('adminToken');
@@ -190,6 +196,22 @@ const Admin = () => {
     }
   };
 
+  const handleRemoveImage = async () => {
+    if (!editingNominee || !editingNominee.image_url) return;
+
+    try {
+      await axios.delete(`/api/nominees/${editingNominee.id}/image`);
+      setEditingNominee(prev => ({ ...prev, image_url: '' }));
+      setTempImageFile(null);
+      setTempImagePreview('');
+      setSuccess('Image removed successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      setError('Failed to remove image. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   const handleDeleteNominee = async (nomineeId) => {
     if (window.confirm('Are you sure you want to delete this nominee? This action cannot be undone.')) {
       try {
@@ -286,12 +308,14 @@ const Admin = () => {
 
   const handleNomineeSubmit = async (e) => {
     e.preventDefault();
-
     try {
       let nomineeData = {
         ...editingNominee,
         category_id: selectedCategoryId
       };
+
+      // Store original image URL for potential cleanup
+      const originalImageUrl = editingNominee.image_url;
 
       // Upload image if there's a temporary file
       if (tempImageFile) {
@@ -309,6 +333,17 @@ const Admin = () => {
       closeNomineeModal();
       fetchData();
       setTimeout(() => setSuccess(''), 3000);
+
+      // Clean up old image if a new one was uploaded and there was an old one
+      if (originalImageUrl && originalImageUrl !== nomineeData.image_url && originalImageUrl.startsWith('/uploads/')) {
+        try {
+          const oldFilename = originalImageUrl.replace('/uploads/', '');
+          await axios.delete(`/api/nominees/${editingNominee.id}/image?filename=${oldFilename}`);
+          console.log('Cleaned up old image:', oldFilename);
+        } catch (err) {
+          console.error('Failed to clean up old image:', err);
+        }
+      }
     } catch (err) {
       setError('Failed to create nominee. Please try again.');
       setTimeout(() => setError(''), 3000);
@@ -715,9 +750,7 @@ const Admin = () => {
                   {(tempImagePreview || (editingNominee?.image_url && editingNominee.image_url !== 'temp-preview')) && (
                     <div className="mt-2">
                       <img
-                        src={tempImagePreview || (editingNominee.image_url.startsWith('http') ?
-                          editingNominee.image_url :
-                          `http://localhost:5001${editingNominee.image_url}`)}
+                        src={tempImagePreview || getImageUrl(editingNominee.image_url)}
                         alt="Preview"
                         style={{ maxWidth: '200px', maxHeight: '150px' }}
                         className="img-thumbnail"
@@ -726,11 +759,7 @@ const Admin = () => {
                         variant="danger"
                         size="sm"
                         className="ms-2"
-                        onClick={() => {
-                          setTempImageFile(null);
-                          setTempImagePreview('');
-                          setEditingNominee(prev => ({ ...prev, image_url: '' }));
-                        }}
+                        onClick={handleRemoveImage}
                         title="Remove image"
                       >
                         Remove Image
@@ -759,9 +788,7 @@ const Admin = () => {
                   {editingNominee?.image_url && editingNominee.image_url !== 'temp-preview' && (
                     <div className="mt-2">
                       <img
-                        src={editingNominee.image_url.startsWith('http') ?
-                          editingNominee.image_url :
-                          `http://localhost:5001${editingNominee.image_url}`}
+                        src={getImageUrl(editingNominee.image_url)}
                         alt="Preview"
                         style={{ maxWidth: '200px', maxHeight: '150px' }}
                         className="img-thumbnail"

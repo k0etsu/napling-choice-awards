@@ -14,6 +14,12 @@ const Home = () => {
   const [selectedVideo, setSelectedVideo] = useState({ url: '', name: '' });
   const [showVideoModal, setShowVideoModal] = useState(false);
 
+  // Utility function to construct image URLs
+  const getImageUrl = (image_url) => {
+    if (!image_url) return '';
+    return image_url.startsWith('http') ? image_url : `/uploads/${image_url.split('/').pop()}`;
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -154,7 +160,7 @@ const Home = () => {
                     {nominee.image_url && (
                       <Card.Img
                         variant="top"
-                        src={nominee.image_url.startsWith('http') ? nominee.image_url : `http://localhost:5001${nominee.image_url}`}
+                        src={getImageUrl(nominee.image_url)}
                         className="nominee-image"
                         alt={nominee.name}
                       />
