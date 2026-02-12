@@ -110,6 +110,23 @@ body.dark-mode .winner-title {
   transition: width 0.6s ease;
 }
 
+/* Theme-aware progress bar colors */
+.winner-progress .progress-bar {
+  background-color: var(--primary-color);
+}
+
+body.dark-mode .winner-progress .progress-bar {
+  background-color: var(--secondary-color);
+}
+
+.regular-progress .progress-bar {
+  background-color: var(--accent-color);
+}
+
+body.dark-mode .regular-progress .progress-bar {
+  background-color: var(--accent-color);
+}
+
 .badge {
   font-size: 0.85rem;
   padding: 0.5rem 0.75rem;

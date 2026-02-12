@@ -100,32 +100,34 @@ const Results = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {results[category.id].map((result, index) => {
-                      const maxVotes = Math.max(...results[category.id].map(r => r.vote_count));
-                      const percentage = maxVotes > 0 ? (result.vote_count / maxVotes) * 100 : 0;
+                    {(() => {
+                      const totalVotes = results[category.id].reduce((sum, r) => sum + r.vote_count, 0);
+                      return results[category.id].map((result, index) => {
+                        const percentage = totalVotes > 0 ? (result.vote_count / totalVotes) * 100 : 0;
 
-                      return (
-                        <tr key={result.product_id}>
-                          <td>
-                            <strong>{result.product?.name || 'Unknown Product'}</strong>
-                          </td>
-                          <td style={{ width: '80px' }}>
-                            <span className="badge bg-success">
-                              {result.vote_count} vote{result.vote_count !== 1 ? 's' : ''}
-                            </span>
-                          </td>
-                          <td style={{ width: '50%' }}>
-                            <div className="w-100">
-                              <ProgressBar
-                                now={percentage}
-                                label={`${percentage.toFixed(1)}%`}
-                                variant={index === 0 ? 'success' : percentage >= 50 ? 'info' : 'secondary'}
-                              />
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                        return (
+                          <tr key={result.product_id}>
+                            <td>
+                              <strong>{result.product?.name || 'Unknown Product'}</strong>
+                            </td>
+                            <td style={{ width: '80px' }}>
+                              <span className="badge bg-success">
+                                {result.vote_count} vote{result.vote_count !== 1 ? 's' : ''}
+                              </span>
+                            </td>
+                            <td style={{ width: '50%' }}>
+                              <div className="w-100">
+                                <ProgressBar
+                                  now={percentage}
+                                  label={`${percentage.toFixed(1)}%`}
+                                  className={index === 0 ? 'winner-progress' : 'regular-progress'}
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
                   </tbody>
                 </Table>
                 </>
