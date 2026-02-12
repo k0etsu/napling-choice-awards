@@ -28,9 +28,13 @@ A modern voting platform for Nimi Nightmare's annual award show. Built with Reac
 - Flask-Caching 2.1.0
 - PyMongo 4.3.3
 - Gunicorn 20.1.0
+- Boto3 1.34.144 (for AWS S3 integration)
 
 ### Database
 - MongoDB for storing categories, nominees, and votes
+
+### Storage
+- AWS S3 for image storage (nominee photos, etc.)
 
 ## Project Structure
 
@@ -56,11 +60,11 @@ napling-choice-awards/
 │   ├── package.json
 │   └── package-lock.json
 ├── backend/
-│   ├── uploads/
 │   ├── app.py
 │   ├── database_setup.py
 │   ├── test_data.py
 │   ├── fix_ids.py
+│   ├── test_s3.py
 │   ├── pyproject.toml
 │   ├── requirements.txt
 │   ├── .env.example
@@ -103,15 +107,27 @@ pip install -r requirements.txt
 3. Set up environment variables:
 ```bash
 cp .env.example .env
-# Edit .env with your MongoDB connection string and other settings
+# Edit .env with your MongoDB connection string, S3 credentials, and other settings
 ```
 
-4. Initialize the database:
+**Required S3 Configuration:**
+- `AWS_ACCESS_KEY_ID` - Your AWS access key
+- `AWS_SECRET_ACCESS_KEY` - Your AWS secret key
+- `AWS_REGION` - AWS region (default: us-east-1)
+- `S3_BUCKET_NAME` - Your S3 bucket name
+- `S3_BUCKET_URL` - Full S3 bucket URL (e.g., https://bucket-name.s3.amazonaws.com)
+
+4. Test S3 connectivity (optional but recommended):
+```bash
+python test_s3.py
+```
+
+5. Initialize the database:
 ```bash
 python database_setup.py
 ```
 
-5. Run the development server:
+6. Run the development server:
 ```bash
 uv run flask run
 # or
@@ -171,7 +187,8 @@ The `deployment/` directory contains configuration files for production deployme
 - Rate limiting on API endpoints
 - CORS protection
 - Input validation and sanitization
-- Secure file upload handling
+- Secure file upload handling with AWS S3
+- JWT-based admin authentication
 
 ## Contributing
 

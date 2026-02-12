@@ -15,6 +15,9 @@ from functools import wraps
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_caching import Cache
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+import uuid
 
 load_dotenv()
 
@@ -39,16 +42,22 @@ config = {
 app.config.from_mapping(config)
 cache = Cache(app)
 
-# Upload configuration - place uploads in frontend build directory for deployment
-UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads')
+# S3 Configuration
+S3_BUCKET = os.getenv('S3_BUCKET_NAME')
+S3_BUCKET_URL = os.getenv('S3_BUCKET_URL')
+AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
-# Create uploads directory if it doesn't exist
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+# Initialize S3 client
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
+    region_name=AWS_REGION
+)
 
 # MongoDB connection with security
 MONGODB_URI = os.getenv('MONGODB_URI', 'mongodb://localhost:27017/')
@@ -80,6 +89,39 @@ admin_users = db['admin_users']
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def generate_unique_filename(filename):
+    """Generate a unique filename for S3 upload"""
+    name, ext = os.path.splitext(filename)
+    timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    unique_id = str(uuid.uuid4())[:8]
+    secure_name = secure_filename(name)
+    return f"{secure_name}_{timestamp}_{unique_id}{ext}"
+
+def upload_to_s3(file, filename):
+    """Upload file to S3 and return the URL"""
+    try:
+        s3_client.upload_fileobj(
+            file,
+            S3_BUCKET,
+            filename,
+            ExtraArgs={'ContentType': file.content_type or 'image/jpeg'}
+        )
+        # Return the S3 URL
+        return f"{S3_BUCKET_URL}/{filename}"
+    except NoCredentialsError:
+        raise Exception("S3 credentials not available")
+    except ClientError as e:
+        raise Exception(f"S3 upload failed: {str(e)}")
+
+def delete_from_s3(filename):
+    """Delete file from S3"""
+    try:
+        s3_client.delete_object(Bucket=S3_BUCKET, Key=filename)
+        return True
+    except ClientError as e:
+        print(f"Error deleting from S3: {str(e)}")
+        return False
 
 def get_client_ip():
     """Get the real client IP address, accounting for proxies"""
@@ -265,24 +307,27 @@ def upload_file():
         return jsonify({'error': 'No selected file'}), 400
 
     if file and allowed_file(file.filename):
-        filename = secure_filename(file.filename)
-        # Add timestamp to avoid filename conflicts
-        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        name, ext = os.path.splitext(filename)
-        filename = f"{name}_{timestamp}{ext}"
+        try:
+            # Generate unique filename
+            filename = generate_unique_filename(file.filename)
 
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        file.save(file_path)
+            # Upload to S3
+            file_url = upload_to_s3(file, filename)
 
-        # Return the URL that can be used to access the file
-        file_url = f"/uploads/{filename}"
-        return jsonify({'filename': filename, 'url': file_url}), 200
+            return jsonify({
+                'filename': filename,
+                'url': file_url
+            }), 200
+        except Exception as e:
+            return jsonify({'error': f'Upload failed: {str(e)}'}), 500
     else:
         return jsonify({'error': 'File type not allowed'}), 400
 
+# S3 files are served directly from S3 URLs, no local serving needed
+# This route is kept for backward compatibility but returns 404
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    return jsonify({'error': 'Local file serving disabled. Files are served from S3.'}), 404
 
 # Serve React static files
 @app.route('/static/<path:filename>')
@@ -500,19 +545,20 @@ def remove_nominee_image(nominee_id):
         if not filename:
             # Extract filename from image_url if no query parameter
             image_url = nominee.get('image_url', '')
-            if image_url and image_url.startswith('/uploads/'):
-                filename = image_url.replace('/uploads/', '')
+            if image_url and S3_BUCKET_URL in image_url:
+                # Extract filename from S3 URL
+                filename = image_url.replace(f"{S3_BUCKET_URL}/", '')
 
-        # Delete associated image file if it exists
+        # Delete associated image file from S3 if it exists
         if filename:
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             try:
-                if os.path.exists(image_path):
-                    os.remove(image_path)
-                    print(f"Deleted image file: {image_path}")
+                if delete_from_s3(filename):
+                    print(f"Deleted S3 file: {filename}")
+                else:
+                    print(f"Failed to delete S3 file: {filename}")
             except Exception as e:
-                print(f"Error deleting image file {image_path}: {str(e)}")
-                # Continue with nominee update even if image deletion fails
+                print(f"Error deleting S3 file {filename}: {str(e)}")
+                # Continue with nominee update even if S3 deletion fails
 
         # Update nominee to remove image_url
         result = nominees.update_one(
@@ -538,18 +584,19 @@ def delete_nominee(nominee_id):
         if not nominee:
             return {'error': 'Nominee not found'}, 404
 
-        # Delete associated image file if it exists
+        # Delete associated image file from S3 if it exists
         image_url = nominee.get('image_url', '')
-        if image_url and image_url.startswith('/uploads/'):
-            filename = image_url.replace('/uploads/', '')
-            image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if image_url and S3_BUCKET_URL in image_url:
+            # Extract filename from S3 URL
+            filename = image_url.replace(f"{S3_BUCKET_URL}/", '')
             try:
-                if os.path.exists(image_path):
-                    os.remove(image_path)
-                    print(f"Deleted image file: {image_path}")
+                if delete_from_s3(filename):
+                    print(f"Deleted S3 file: {filename}")
+                else:
+                    print(f"Failed to delete S3 file: {filename}")
             except Exception as e:
-                print(f"Error deleting image file {image_path}: {str(e)}")
-                # Continue with nominee deletion even if image deletion fails
+                print(f"Error deleting S3 file {filename}: {str(e)}")
+                # Continue with nominee deletion even if S3 deletion fails
 
         result = nominees.delete_one({'_id': ObjectId(nominee_id)})
 
