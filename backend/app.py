@@ -44,8 +44,9 @@ cache = Cache(app)
 
 # S3 Configuration
 S3_BUCKET = os.getenv('S3_BUCKET_NAME')
-S3_BUCKET_URL = os.getenv('S3_BUCKET_URL')
+S3_PATH = os.getenv('S3_BUCKET_PATH')
 AWS_REGION = os.getenv('AWS_REGION', 'us-east-1')
+S3_BUCKET_URL = f"https://{S3_BUCKET}.s3.{AWS_REGION}.amazonaws.com"
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_FILE_SIZE = 16 * 1024 * 1024  # 16MB
 
@@ -98,17 +99,17 @@ def generate_unique_filename(filename):
     secure_name = secure_filename(name)
     return f"{secure_name}_{timestamp}_{unique_id}{ext}"
 
-def upload_to_s3(file, filename):
+def upload_to_s3(file, key):
     """Upload file to S3 and return the URL"""
     try:
         s3_client.upload_fileobj(
             file,
             S3_BUCKET,
-            filename,
+            key,
             ExtraArgs={'ContentType': file.content_type or 'image/jpeg'}
         )
         # Return the S3 URL
-        return f"{S3_BUCKET_URL}/{filename}"
+        return f"{S3_BUCKET_URL}/{key}"
     except NoCredentialsError:
         raise Exception("S3 credentials not available")
     except ClientError as e:
@@ -311,29 +312,19 @@ def upload_file():
             # Generate unique filename
             filename = generate_unique_filename(file.filename)
 
+            key = os.path.join(S3_PATH, filename)
+
             # Upload to S3
-            file_url = upload_to_s3(file, filename)
+            file_url = upload_to_s3(file, key)
 
             return jsonify({
-                'filename': filename,
+                'filename': key,
                 'url': file_url
             }), 200
         except Exception as e:
             return jsonify({'error': f'Upload failed: {str(e)}'}), 500
     else:
         return jsonify({'error': 'File type not allowed'}), 400
-
-# S3 files are served directly from S3 URLs, no local serving needed
-# This route is kept for backward compatibility but returns 404
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return jsonify({'error': 'Local file serving disabled. Files are served from S3.'}), 404
-
-# Serve React static files
-@app.route('/static/<path:filename>')
-def serve_static(filename):
-    static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'frontend', 'build', 'static')
-    return send_from_directory(static_dir, filename)
 
 @app.route('/api/categories', methods=['GET'])
 @cache.cached(timeout=600)  # Cache for 10 minutes
