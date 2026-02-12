@@ -98,6 +98,24 @@ body.dark-mode .winner-title {
   background-color: var(--accent-color);
 }
 
+.tie-winners {
+  margin-bottom: 2rem;
+}
+
+.tie-winners .winner-image {
+  border: 3px solid var(--accent-color);
+  transition: all 0.3s ease;
+}
+
+.tie-winners .winner-image:hover {
+  transform: scale(1.05);
+  box-shadow: 0 8px 25px var(--bs-shadow);
+}
+
+body.dark-mode .tie-winners .winner-image {
+  border-color: var(--primary-color);
+}
+
 .progress {
   background-color: var(--bs-secondary-bg);
   border-radius: 80px;
@@ -121,6 +139,27 @@ body.dark-mode .progress {
 
 body.dark-mode .winner-progress .progress-bar {
   background-color: var(--primary-color);
+}
+
+.tie-progress .progress-bar {
+  background: linear-gradient(45deg, var(--primary-color) 25%, var(--accent-color) 25%, var(--accent-color) 50%, var(--primary-color) 50%, var(--primary-color) 75%, var(--accent-color) 75%, var(--accent-color));
+  background-size: 20px 20px;
+  animation: tie-progress-animation 1s linear infinite;
+}
+
+body.dark-mode .tie-progress .progress-bar {
+  background: linear-gradient(45deg, var(--primary-color) 25%, var(--accent-color) 25%, var(--accent-color) 50%, var(--primary-color) 50%, var(--primary-color) 75%, var(--accent-color) 75%, var(--accent-color));
+  background-size: 20px 20px;
+  animation: tie-progress-animation 1s linear infinite;
+}
+
+@keyframes tie-progress-animation {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 20px 20px;
+  }
 }
 
 .regular-progress .progress-bar {

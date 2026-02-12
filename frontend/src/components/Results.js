@@ -77,18 +77,53 @@ const Results = () => {
             <Card.Body>
               {results[category.id] && results[category.id].length > 0 ? (
                 <>
-                  {/* Display winning product image if available */}
+                  {/* Display winning product(s) image(s) if available */}
                     <div className="text-center mb-4">
-                      {results[category.id][0]?.product?.image_url && (
-                        <img
-                          src={results[category.id][0].product.image_url}
-                          alt={results[category.id][0].product.name}
-                          className="winner-image mb-3"
-                        />
-                      )}
-                      <h4 className="mt-2 winner-title">
-                        🏆 Winner: {results[category.id][0].product.name}
-                      </h4>
+                      {(() => {
+                        const maxVotes = Math.max(...results[category.id].map(r => r.vote_count));
+                        const winners = results[category.id].filter(r => r.vote_count === maxVotes);
+                        const isTie = winners.length > 1;
+
+                        return (
+                          <>
+                            {isTie ? (
+                              <div className="tie-winners">
+                                <h4 className="mt-2 winner-title">
+                                  🏆 TIED WINNERS
+                                </h4>
+                                <div className="d-flex justify-content-center gap-3 flex-wrap">
+                                  {winners.map((winner, index) => (
+                                    <div key={winner.product_id} className="text-center">
+                                      {winner.product?.image_url && (
+                                        <img
+                                          src={winner.product.image_url}
+                                          alt={winner.product.name}
+                                          className="winner-image mb-2"
+                                          style={{ maxWidth: '120px', maxHeight: '120px' }}
+                                        />
+                                      )}
+                                      <div className="fw-bold">{winner.product.name}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                {results[category.id][0]?.product?.image_url && (
+                                  <img
+                                    src={results[category.id][0].product.image_url}
+                                    alt={results[category.id][0].product.name}
+                                    className="winner-image mb-3"
+                                  />
+                                )}
+                                <h4 className="mt-2 winner-title">
+                                  🏆 Winner: {results[category.id][0].product.name}
+                                </h4>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                     </div>
 
                   <Table striped bordered hover className="results-table">
@@ -101,14 +136,21 @@ const Results = () => {
                   </thead>
                   <tbody>
                     {(() => {
-                      const winnerVotes = results[category.id][0]?.vote_count || 1; // First place votes, default to 1 to avoid division by zero
+                      const maxVotes = Math.max(...results[category.id].map(r => r.vote_count));
+                      const winners = results[category.id].filter(r => r.vote_count === maxVotes);
+                      const isTie = winners.length > 1;
+
                       return results[category.id].map((result, index) => {
-                        const percentage = winnerVotes > 0 ? (result.vote_count / winnerVotes) * 100 : 0;
+                        const percentage = maxVotes > 0 ? (result.vote_count / maxVotes) * 100 : 0;
+                        const isWinner = result.vote_count === maxVotes;
 
                         return (
                           <tr key={result.product_id}>
                             <td>
                               <strong>{result.product?.name || 'Unknown Product'}</strong>
+                              {isWinner && isTie && (
+                                <span className="badge bg-warning ms-2">🏆 TIED</span>
+                              )}
                             </td>
                             <td style={{ width: '80px' }}>
                               <span className="badge bg-success">
@@ -120,7 +162,13 @@ const Results = () => {
                                 <ProgressBar
                                   now={percentage}
                                   label={`${percentage.toFixed(1)}%`}
-                                  className={index === 0 ? 'winner-progress' : 'regular-progress'}
+                                  className={
+                                    isWinner
+                                      ? isTie
+                                        ? 'tie-progress'
+                                        : 'winner-progress'
+                                      : 'regular-progress'
+                                  }
                                 />
                               </div>
                             </td>
