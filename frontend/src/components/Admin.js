@@ -157,6 +157,9 @@ const Admin = () => {
     try {
       let nomineeData = { ...editingNominee };
 
+      // Store original image URL for potential cleanup
+      const originalImageUrl = editingNominee.image_url;
+
       // Upload image if there's a temporary file
       if (tempImageFile) {
         const imageUrl = await uploadImageAndSetUrl(tempImageFile);
@@ -177,6 +180,17 @@ const Admin = () => {
     } catch (err) {
       setError('Failed to update nominee. Please try again.');
       setTimeout(() => setError(''), 3000);
+    }
+
+    // Clean up old image if a new one was uploaded and there was an old one
+    if (originalImageUrl && originalImageUrl !== nomineeData.image_url && originalImageUrl.startsWith('/uploads/')) {
+      try {
+        const oldFilename = originalImageUrl.replace('/uploads/', '');
+        await axios.delete(`/api/nominees/${editingNominee.id}/image?filename=${oldFilename}`);
+        console.log('Cleaned up old image:', oldFilename);
+      } catch (err) {
+        console.error('Failed to clean up old image:', err);
+      }
     }
   };
 
