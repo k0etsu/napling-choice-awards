@@ -101,9 +101,9 @@ const Results = () => {
                   </thead>
                   <tbody>
                     {(() => {
-                      const totalVotes = results[category.id].reduce((sum, r) => sum + r.vote_count, 0);
+                      const winnerVotes = results[category.id][0]?.vote_count || 1; // First place votes, default to 1 to avoid division by zero
                       return results[category.id].map((result, index) => {
-                        const percentage = totalVotes > 0 ? (result.vote_count / totalVotes) * 100 : 0;
+                        const percentage = winnerVotes > 0 ? (result.vote_count / winnerVotes) * 100 : 0;
 
                         return (
                           <tr key={result.product_id}>
