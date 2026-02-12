@@ -11,17 +11,19 @@ db = client['napling_choice_awards']
 
 # Collections
 categories = db['categories']
-products = db['products']
+nominees = db['nominees']
 votes = db['votes']
+admin_users = db['admin_users']
 
 def setup_database():
     """Initialize the database with sample data"""
-    
+
     # Clear existing data (optional - remove this in production)
     categories.delete_many({})
-    products.delete_many({})
+    nominees.delete_many({})
     votes.delete_many({})
-    
+    admin_users.delete_many({})
+
     # Create sample categories
     sample_categories = [
         {
@@ -85,7 +87,7 @@ def setup_database():
             'created_at': datetime.datetime.now(datetime.UTC)
         }
     ]
-    
+
     # Insert categories
     category_ids = []
     for category in sample_categories:
@@ -99,9 +101,9 @@ def setup_database():
         category_ids.append(category_id)
         print(f"Created category: {category['name']} with ID: {category_id}")
         # print(categories.find_one({'_id': result.inserted_id}))
-    
-    # Create sample products
-    sample_products = [
+
+    # Create sample nominees
+    sample_nominees = [
         # Best Picture nominees
         {
             'name': 'Oppenheimer',
@@ -138,7 +140,7 @@ def setup_database():
             'image_url': 'https://via.placeholder.com/300x200/edccbd/4b6460?text=Anatomy+of+a+Fall',
             'created_at': datetime.datetime.now(datetime.UTC)
         },
-        
+
         # Best Director nominees
         {
             'name': 'Christopher Nolan',
@@ -168,7 +170,7 @@ def setup_database():
             'image_url': 'https://via.placeholder.com/300x200/7d9a86/ffffff?text=Alexander+Payne',
             'created_at': datetime.datetime.now(datetime.UTC)
         },
-        
+
         # Best Actor nominees
         {
             'name': 'Cillian Murphy',
@@ -198,7 +200,7 @@ def setup_database():
             'image_url': 'https://via.placeholder.com/300x200/4b6460/ffffff?text=Jeffrey+Wright',
             'created_at': datetime.datetime.now(datetime.UTC)
         },
-        
+
         # Best Actress nominees
         {
             'name': 'Lily Gladstone',
@@ -228,7 +230,7 @@ def setup_database():
             'image_url': 'https://via.placeholder.com/300x200/edccbd/4b6460?text=Carey+Mulligan',
             'created_at': datetime.datetime.now(datetime.UTC)
         },
-        
+
         # Best Supporting Actor nominees
         {
             'name': 'Robert De Niro',
@@ -251,7 +253,7 @@ def setup_database():
             'image_url': 'https://via.placeholder.com/300x200/edccbd/4b6460?text=Ryan+Gosling',
             'created_at': datetime.datetime.now(datetime.UTC)
         },
-        
+
         # Best Supporting Actress nominees
         {
             'name': 'Da\'Vine Joy Randolph',
@@ -274,7 +276,7 @@ def setup_database():
             'image_url': 'https://via.placeholder.com/300x200/edccbd/4b6460?text=America+Ferrera',
             'created_at': datetime.datetime.now(datetime.UTC)
         },
-        
+
         # Best Original Screenplay nominees
         {
             'name': 'The Holdovers',
@@ -290,7 +292,7 @@ def setup_database():
             'image_url': 'https://via.placeholder.com/300x200/4b6460/ffffff?text=Anatomy+of+a+Fall',
             'created_at': datetime.datetime.now(datetime.UTC)
         },
-        
+
         # Best Adapted Screenplay nominees
         {
             'name': 'Oppenheimer',
@@ -307,26 +309,26 @@ def setup_database():
             'created_at': datetime.datetime.now(datetime.UTC)
         }
     ]
-    
-    # Insert products
-    for product in sample_products:
-        result = products.insert_one(product)
-        product_id = str(result.inserted_id)
+
+    # Insert nominees
+    for nominee in sample_nominees:
+        result = nominees.insert_one(nominee)
+        nominee_id = str(result.inserted_id)
         # Update the document to include the id field
-        products.update_one(
+        nominees.update_one(
             {'_id': result.inserted_id},
-            {'$set': {'id': product_id}}
+            {'$set': {'id': nominee_id}}
         )
-        print(f"Created product: {product['name']} with ID: {product_id}")
-        print(products.find_one({'_id': result.inserted_id}))
+        print(f"Created nominee: {nominee['name']} with ID: {nominee_id}")
+        print(nominees.find_one({'_id': result.inserted_id}))
 
     # Create indexes for better performance
     votes.create_index([("category_id", 1), ("voter_ip", 1)], unique=True)
-    products.create_index([("category_id", 1)])
+    nominees.create_index([("category_id", 1)])
     categories.create_index([("name", 1)], unique=True)
-    
+
     print("\nDatabase setup completed successfully!")
-    print(f"Created {len(category_ids)} award categories and {len(sample_products)} nominees")
+    print(f"Created {len(category_ids)} award categories and {len(sample_nominees)} nominees")
     print("Indexes created for optimal performance")
 
 if __name__ == "__main__":

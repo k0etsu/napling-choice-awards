@@ -73,7 +73,7 @@ db = client['napling_choice_awards']
 
 # Collections
 categories = db['categories']
-products = db['products']
+nominees = db['nominees']
 votes = db['votes']
 admin_users = db['admin_users']
 
@@ -136,14 +136,14 @@ def validate_category_data(data):
 
     return errors
 
-def validate_product_data(data):
-    """Validate product input data"""
+def validate_nominee_data(data):
+    """Validate nominee input data"""
     errors = []
 
     if not data.get('name') or len(data.get('name', '').strip()) < 1:
-        errors.append('Product name is required')
+        errors.append('Nominee name is required')
     elif len(data.get('name', '').strip()) > 100:
-        errors.append('Product name must be less than 100 characters')
+        errors.append('Nominee name must be less than 100 characters')
 
     if not data.get('category_id') or not validate_object_id(data['category_id']):
         errors.append('Valid category ID is required')
@@ -164,8 +164,8 @@ def validate_product_data(data):
 def initialize_admin_users():
     """Create default admin users if they don't exist"""
     default_admins = [
-        {'username': 'admin', 'password': 'admin123'},
-        {'username': 'nimi', 'password': 'nimi123'}
+        {'username': 'admin', 'password': os.getenv('ADMIN_PASSWORD', 'admin123')},
+        {'username': 'nimi', 'password': os.getenv('NIMI_PASSWORD', 'nimi123')}
     ]
 
     for admin_data in default_admins:
@@ -323,32 +323,32 @@ def create_category():
 
     return json.loads(json_util.dumps(category)), 201
 
-@app.route('/api/products', methods=['GET'])
+@app.route('/api/nominees', methods=['GET'])
 @cache.cached(timeout=300, query_string=True)  # Cache for 5 minutes
-def get_products():
+def get_nominees():
     category_id = request.args.get('category_id')
     query = {}
     if category_id:
         query['category_id'] = category_id
 
-    prods = list(products.find(query, {'_id': 0}))
-    # Convert ObjectId to string id for each product
+    prods = list(nominees.find(query, {'_id': 0}))
+    # Convert ObjectId to string id for each nominee
     # for prod in prods:
     #     prod['id'] = str(prod.pop('_id', ''))
     return prods
 
-@app.route('/api/products', methods=['POST'])
+@app.route('/api/nominees', methods=['POST'])
 @limiter.limit("20/minute")
 @jwt_required()
-def create_product():
+def create_nominee():
     data = request.get_json()
 
     # Validate input
-    errors = validate_product_data(data)
+    errors = validate_nominee_data(data)
     if errors:
         return jsonify({'error': 'Validation failed', 'details': errors}), 400
 
-    product = {
+    nominee = {
         'name': sanitize_input(data['name']),
         'description': sanitize_input(data.get('description', '')),
         'category_id': data['category_id'],
@@ -356,18 +356,17 @@ def create_product():
         'youtube_url': data.get('youtube_url', ''),
         'created_at': datetime.datetime.now(datetime.UTC)
     }
-    result = products.insert_one(product)
-    product['id'] = str(result.inserted_id)
+    result = nominees.insert_one(nominee)
+    nominee['id'] = str(result.inserted_id)
     # Update the document to include the id field
-    products.update_one(
+    nominees.update_one(
         {'_id': result.inserted_id},
         {'$set': {'id': str(result.inserted_id)}}
     )
 
     # Clear relevant caches
-    cache.clear()  # Clear all cache when products change
-
-    return json.loads(json_util.dumps(product)), 201
+    cache.clear()  # Clear all cache when nominees change
+    return json.loads(json_util.dumps(nominee)), 201
 
 @app.route('/api/categories/<category_id>', methods=['PUT'])
 @jwt_required()
@@ -407,45 +406,45 @@ def update_category(category_id):
         print(f"Error updating category {category_id}: {str(e)}")
         return {'error': 'Failed to update category'}, 500
 
-@app.route('/api/products/<product_id>', methods=['PUT'])
+@app.route('/api/nominees/<nominee_id>', methods=['PUT'])
 @jwt_required()
-def update_product(product_id):
+def update_nominee(nominee_id):
     try:
         data = request.get_json()
 
-        # Check if product exists
-        product = products.find_one({'_id': ObjectId(product_id)})
-        if not product:
-            return {'error': 'Product not found'}, 404
+        # Check if nominee exists
+        nominee = nominees.find_one({'_id': ObjectId(nominee_id)})
+        if not nominee:
+            return {'error': 'Nominee not found'}, 404
 
-        # Update product
+        # Update nominee
         update_data = {
-            'name': data.get('name', product['name']),
-            'description': data.get('description', product['description']),
-            'category_id': data.get('category_id', product['category_id']),
-            'image_url': data.get('image_url', product.get('image_url', '')),
-            'youtube_url': data.get('youtube_url', product.get('youtube_url', '')),
+            'name': data.get('name', nominee['name']),
+            'description': data.get('description', nominee['description']),
+            'category_id': data.get('category_id', nominee['category_id']),
+            'image_url': data.get('image_url', nominee.get('image_url', '')),
+            'youtube_url': data.get('youtube_url', nominee.get('youtube_url', '')),
             'updated_at': datetime.datetime.now(datetime.UTC)
         }
 
-        result = products.update_one(
-            {'_id': ObjectId(product_id)},
+        result = nominees.update_one(
+            {'_id': ObjectId(nominee_id)},
             {'$set': update_data}
         )
 
         if result.modified_count > 0:
             # Clear relevant caches
-            cache.clear()  # Clear all cache when products change
+            cache.clear()  # Clear all cache when nominees change
 
-            # Return updated product
-            updated_product = products.find_one({'_id': ObjectId(product_id)}, {'_id': 0})
-            return json.loads(json_util.dumps(updated_product)), 200
+            # Return updated nominee
+            updated_nominee = nominees.find_one({'_id': ObjectId(nominee_id)}, {'_id': 0})
+            return json.loads(json_util.dumps(updated_nominee)), 200
         else:
-            return {'error': 'No changes made to product'}, 400
+            return {'error': 'No changes made to nominee'}, 400
 
     except Exception as e:
-        print(f"Error updating product {product_id}: {str(e)}")
-        return {'error': 'Failed to update product'}, 500
+        print(f"Error updating nominee {nominee_id}: {str(e)}")
+        return {'error': 'Failed to update nominee'}, 500
 
 @app.route('/api/categories/<category_id>', methods=['DELETE'])
 @jwt_required()
@@ -456,17 +455,13 @@ def delete_category(category_id):
         if not category:
             return {'error': 'Category not found'}, 404
 
-        # Count products to be deleted for logging
-        products_to_delete = list(products.find({'category_id': category_id}))
-        products_count = len(products_to_delete)
-
         # Delete the category
         result = categories.delete_one({'_id': ObjectId(category_id)})
 
-        # Delete all products associated with this category
-        products_result = products.delete_many({'category_id': category_id})
+        # Delete all nominees for this category
+        nominees_result = nominees.delete_many({'category_id': category_id})
 
-        # Delete all votes for products in this category
+        # Delete all votes for nominees in this category
         votes_result = votes.delete_many({'category_id': category_id})
 
         if result.deleted_count > 0:
@@ -475,8 +470,8 @@ def delete_category(category_id):
 
             return {
                 'message': f'Category "{category["name"]}" deleted successfully',
-                'deleted_products': products_count,
-                'products_deleted': products_result.deleted_count if hasattr(products_result, 'deleted_count') else 0
+                'deleted_nominees': nominees_result.deleted_count if hasattr(nominees_result, 'deleted_count') else 0,
+                'nominees_deleted': nominees_result.deleted_count if hasattr(nominees_result, 'deleted_count') else 0
             }, 200
         else:
             return {'error': 'Failed to delete category'}, 500
@@ -485,17 +480,17 @@ def delete_category(category_id):
         print(f"Error deleting category {category_id}: {str(e)}")
         return {'error': 'Failed to delete category'}, 500
 
-@app.route('/api/products/<product_id>/image', methods=['DELETE'])
+@app.route('/api/nominees/<nominee_id>/image', methods=['DELETE'])
 @jwt_required()
-def remove_product_image(product_id):
+def remove_nominee_image(nominee_id):
     try:
-        # Get product details
-        product = products.find_one({'_id': ObjectId(product_id)})
-        if not product:
-            return {'error': 'Product not found'}, 404
+        # Get nominee details
+        nominee = nominees.find_one({'_id': ObjectId(nominee_id)})
+        if not nominee:
+            return {'error': 'Nominee not found'}, 404
 
         # Delete associated image file if it exists
-        image_url = product.get('image_url', '')
+        image_url = nominee.get('image_url', '')
         if image_url and image_url.startswith('/uploads/'):
             filename = image_url.replace('/uploads/', '')
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -505,11 +500,11 @@ def remove_product_image(product_id):
                     print(f"Deleted image file: {image_path}")
             except Exception as e:
                 print(f"Error deleting image file {image_path}: {str(e)}")
-                # Continue with product update even if image deletion fails
+                # Continue with nominee update even if image deletion fails
 
-        # Update product to remove image_url
-        result = products.update_one(
-            {'_id': ObjectId(product_id)},
+        # Update nominee to remove image_url
+        result = nominees.update_one(
+            {'_id': ObjectId(nominee_id)},
             {'$unset': {'image_url': 1}}
         )
 
@@ -519,20 +514,20 @@ def remove_product_image(product_id):
             return {'error': 'Failed to remove image'}, 500
 
     except Exception as e:
-        print(f"Error removing product image: {str(e)}")
+        print(f"Error removing nominee image: {str(e)}")
         return {'error': 'Failed to remove image'}, 500
 
-@app.route('/api/products/<product_id>', methods=['DELETE'])
+@app.route('/api/nominees/<nominee_id>', methods=['DELETE'])
 @jwt_required()
-def delete_product(product_id):
+def delete_nominee(nominee_id):
     try:
-        # Get product details before deletion to retrieve image_url
-        product = products.find_one({'_id': ObjectId(product_id)})
-        if not product:
-            return {'error': 'Product not found'}, 404
+        # Get nominee details before deletion to retrieve image_url
+        nominee = nomineses.find_one({'_id': ObjectId(nominee_id)})
+        if not nominee:
+            return {'error': 'Nominee not found'}, 404
 
         # Delete associated image file if it exists
-        image_url = product.get('image_url', '')
+        image_url = nominee.get('image_url', '')
         if image_url and image_url.startswith('/uploads/'):
             filename = image_url.replace('/uploads/', '')
             image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -542,22 +537,22 @@ def delete_product(product_id):
                     print(f"Deleted image file: {image_path}")
             except Exception as e:
                 print(f"Error deleting image file {image_path}: {str(e)}")
-                # Continue with product deletion even if image deletion fails
+                # Continue with nominee deletion even if image deletion fails
 
-        result = products.delete_one({'_id': ObjectId(product_id)})
+        result = nominees.delete_one({'_id': ObjectId(nominee_id)})
 
-        # Delete all votes for this product
-        votes.delete_many({'product_id': product_id})
+        # Delete all votes for this nominee
+        votes.delete_many({'nominee_id': nominee_id})
 
         if result.deleted_count > 0:
             # Clear relevant caches
-            cache.clear()  # Clear all cache when products change
+            cache.clear()  # Clear all cache when nominees change
 
-            return {'message': 'Product deleted successfully'}, 200
+            return {'message': 'Nominee deleted successfully'}, 200
         else:
-            return {'error': 'Product not found'}, 404
+            return {'error': 'Nominee not found'}, 404
     except Exception as e:
-        return {'error': 'Failed to delete product'}, 500
+        return {'error': 'Failed to delete nominee'}, 500
 
 @app.route('/api/vote', methods=['POST'])
 @limiter.limit("10/minute")
@@ -579,7 +574,7 @@ def cast_vote():
     })
 
     vote_data = {
-        'product_id': data['product_id'],
+        'nominee_id': data['nominee_id'],
         'category_id': data['category_id'],
         'voter_ip': get_client_ip(),
         'created_at': datetime.datetime.now(datetime.UTC)
@@ -624,7 +619,7 @@ def get_results(category_id):
     pipeline = [
         {'$match': {'category_id': category_id}},
         {'$group': {
-            '_id': '$product_id',
+            '_id': '$nominee_id',
             'vote_count': {'$sum': 1}
         }},
         {'$sort': {'vote_count': -1}}
@@ -632,11 +627,11 @@ def get_results(category_id):
 
     results = list(votes.aggregate(pipeline))
 
-    # Get product details
+    # Get nominee details
     for result in results:
-        product = products.find_one({'id': result['_id']}, {'_id': 0})
-        result['product'] = product
-        result['product_id'] = result['_id']
+        nominee = nominees.find_one({'id': result['_id']}, {'_id': 0})
+        result['nominee'] = nominee
+        result['nominee_id'] = result['_id']
         del result['_id']
 
     return results

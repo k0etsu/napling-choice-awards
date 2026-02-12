@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Admin = () => {
   const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [nominees, setNominees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -14,10 +14,10 @@ const Admin = () => {
 
   // Modal states
   const [showCategoryModal, setShowCategoryModal] = useState(false);
-  const [showProductModal, setShowProductModal] = useState(false);
+  const [showNomineeModal, setShowNomineeModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [editingNominee, setEditingNominee] = useState(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageInputMode, setImageInputMode] = useState('upload'); // 'upload' or 'url'
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
@@ -66,13 +66,13 @@ const Admin = () => {
 
   const fetchData = async () => {
     try {
-      const [categoriesRes, productsRes] = await Promise.all([
+      const [categoriesRes, nomineesRes] = await Promise.all([
         axios.get('/api/categories'),
-        axios.get('/api/products')
+        axios.get('/api/nominees')
       ]);
 
       setCategories(categoriesRes.data);
-      setProducts(productsRes.data);
+      setNominees(nomineesRes.data);
       setLoading(false);
     } catch (err) {
       setError('Failed to load data. Please try again later.');
@@ -118,19 +118,19 @@ const Admin = () => {
     setShowCategoryModal(true);
   };
 
-  const openAddProductModal = (categoryId) => {
+  const openAddNomineeModal = (categoryId) => {
     setSelectedCategoryId(categoryId);
-    setEditingProduct({
+    setEditingNominee({
       name: '',
       description: '',
       image_url: '',
       youtube_url: '',
       category_id: categoryId,
-      isNewProduct: true
+      isNewNominee: true
     });
     setTempImageFile(null);
     setTempImagePreview('');
-    setShowProductModal(true);
+    setShowNomineeModal(true);
   };
 
   const handleUpdateCategory = async (categoryId) => {
@@ -147,29 +147,29 @@ const Admin = () => {
     }
   };
 
-  const handleUpdateProduct = async (productId) => {
+  const handleUpdateNominee = async (nomineeId) => {
     try {
-      let productData = { ...editingProduct };
+      let nomineeData = { ...editingNominee };
 
       // Upload image if there's a temporary file
       if (tempImageFile) {
         const imageUrl = await uploadImageAndSetUrl(tempImageFile);
         if (imageUrl) {
-          productData.image_url = imageUrl;
+          nomineeData.image_url = imageUrl;
         } else {
           // If upload fails, don't submit the form
           return;
         }
       }
 
-      await axios.put(`/api/products/${productId}`, productData);
-      setSuccess('Product updated successfully!');
-      setShowProductModal(false);
-      setEditingProduct(null);
+      await axios.put(`/api/nominees/${nomineeId}`, nomineeData);
+      setSuccess('Nominee updated successfully!');
+      setShowNomineeModal(false);
+      setEditingNominee(null);
       fetchData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to update product. Please try again.');
+      setError('Failed to update nominee. Please try again.');
       setTimeout(() => setError(''), 3000);
     }
   };
@@ -190,17 +190,17 @@ const Admin = () => {
     }
   };
 
-  const handleDeleteProduct = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+  const handleDeleteNominee = async (nomineeId) => {
+    if (window.confirm('Are you sure you want to delete this nominee? This action cannot be undone.')) {
       try {
-        await axios.delete(`/api/products/${productId}`);
-        setSuccess('Product deleted successfully!');
-        setShowProductModal(false);
-        setEditingProduct(null);
+        await axios.delete(`/api/nominees/${nomineeId}`);
+        setSuccess('Nominee deleted successfully!');
+        setShowNomineeModal(false);
+        setEditingNominee(null);
         fetchData();
         setTimeout(() => setSuccess(''), 3000);
       } catch (err) {
-        setError('Failed to delete product. Please try again.');
+        setError('Failed to delete nominee. Please try again.');
         setTimeout(() => setError(''), 3000);
       }
     }
@@ -211,11 +211,11 @@ const Admin = () => {
     setShowCategoryModal(true);
   };
 
-  const openProductModal = (product = null) => {
-    setEditingProduct(product);
+  const openNomineeModal = (nominee = null) => {
+    setEditingNominee(nominee);
     setTempImageFile(null);
     setTempImagePreview('');
-    setShowProductModal(true);
+    setShowNomineeModal(true);
   };
 
   const closeCategoryModal = () => {
@@ -223,9 +223,9 @@ const Admin = () => {
     setEditingCategory(null);
   };
 
-  const closeProductModal = () => {
-    setShowProductModal(false);
-    setEditingProduct(null);
+  const closeNomineeModal = () => {
+    setShowNomineeModal(false);
+    setEditingNominee(null);
     setSelectedCategoryId(null);
     setTempImageFile(null);
     setTempImagePreview('');
@@ -239,8 +239,8 @@ const Admin = () => {
     setTempImageFile(file);
     setTempImagePreview(previewUrl);
 
-    // Update the editingProduct with a placeholder that will be replaced on submission
-    setEditingProduct(prev => ({
+    // Update the editingNominee with a placeholder that will be replaced on submission
+    setEditingNominee(prev => ({
       ...prev,
       image_url: 'temp-preview'
     }));
@@ -284,12 +284,12 @@ const Admin = () => {
     }
   };
 
-  const handleProductSubmit = async (e) => {
+  const handleNomineeSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      let productData = {
-        ...editingProduct,
+      let nomineeData = {
+        ...editingNominee,
         category_id: selectedCategoryId
       };
 
@@ -297,20 +297,20 @@ const Admin = () => {
       if (tempImageFile) {
         const imageUrl = await uploadImageAndSetUrl(tempImageFile);
         if (imageUrl) {
-          productData.image_url = imageUrl;
+          nomineeData.image_url = imageUrl;
         } else {
           // If upload fails, don't submit the form
           return;
         }
       }
 
-      await axios.post('/api/products', productData);
-      setSuccess('Product created successfully!');
-      closeProductModal();
+      await axios.post('/api/nominees', nomineeData);
+      setSuccess('Nominee created successfully!');
+      closeNomineeModal();
       fetchData();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to create product. Please try again.');
+      setError('Failed to create nominee. Please try again.');
       setTimeout(() => setError(''), 3000);
     }
   };
@@ -388,7 +388,7 @@ const Admin = () => {
     <Container>
       <div className="text-center mb-5">
         <h1 className="display-4">Admin Panel</h1>
-        <p className="lead">Manage categories and products</p>
+        <p className="lead">Manage categories and nominees</p>
         <div className="d-flex justify-content-center align-items-center gap-3">
           <span className="text-muted">Logged in as: <strong>{currentUser}</strong></span>
           <Button variant="outline-primary" size="sm" onClick={openPasswordModal}>
@@ -408,7 +408,7 @@ const Admin = () => {
       <div className="admin-panel">
         <Card>
           <Card.Header className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">Categories & Products</h5>
+            <h5 className="mb-0">Categories & Nominees</h5>
             <Button variant="primary" onClick={openAddCategoryModal}>
               Add Category
             </Button>
@@ -427,7 +427,7 @@ const Admin = () => {
                 </thead>
                 <tbody>
                   {categories.map((category) => {
-                    const categoryProducts = products.filter(p => p.category_id === category.id);
+                    const categoryNominees = nominees.filter(n => n.category_id === category.id);
                     const isExpanded = expandedCategories.has(category.id);
 
                     return (
@@ -445,9 +445,9 @@ const Admin = () => {
                           </td>
                           <td>
                             <strong>{category.name}</strong>
-                            {categoryProducts.length > 0 && (
+                            {categoryNominees.length > 0 && (
                               <div className="text-muted small">
-                                {categoryProducts.length} product{categoryProducts.length !== 1 ? 's' : ''}
+                                {categoryNominees.length} nominee{categoryNominees.length !== 1 ? 's' : ''}
                               </div>
                             )}
                           </td>
@@ -474,17 +474,17 @@ const Admin = () => {
                             <Button
                               variant="success"
                               size="sm"
-                              onClick={() => openAddProductModal(category.id)}
+                              onClick={() => openAddNomineeModal(category.id)}
                             >
-                              Add Product
+                              Add Nominee
                             </Button>
                           </td>
                         </tr>
-                        {isExpanded && categoryProducts.length > 0 && (
+                        {isExpanded && categoryNominees.length > 0 && (
                           <tr>
                             <td colSpan="5" className="p-0">
                               <div className="p-3 category-expanded-section">
-                                <h6 className="mb-3 category-expanded-title">Products in {category.name}</h6>
+                                <h6 className="mb-3 category-expanded-title">Nominees in {category.name}</h6>
                                 <Table size="sm" className="mb-0">
                                   <thead>
                                     <tr>
@@ -494,15 +494,15 @@ const Admin = () => {
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {categoryProducts.map((product) => (
-                                      <tr key={product.id}>
-                                        <td>{product.name}</td>
-                                        <td>{product.description || '-'}</td>
+                                    {categoryNominees.map((nominee) => (
+                                      <tr key={nominee.id}>
+                                        <td>{nominee.name}</td>
+                                        <td>{nominee.description || '-'}</td>
                                         <td>
                                           <Button
                                             variant="primary"
                                             size="sm"
-                                            onClick={() => openProductModal(product)}
+                                            onClick={() => openNomineeModal(nominee)}
                                           >
                                             Edit
                                           </Button>
@@ -595,32 +595,32 @@ const Admin = () => {
           </Modal.Body>
         </Modal>
 
-        {/* Product Edit Modal */}
-        <Modal show={showProductModal} onHide={closeProductModal}>
+        {/* Nominee Edit Modal */}
+        <Modal show={showNomineeModal} onHide={closeNomineeModal}>
           <Modal.Header closeButton>
             <Modal.Title>
-              {editingProduct?.isNewProduct ? 'Add Product' : 'Edit Product'}
+              {editingNominee?.isNewNominee ? 'Add Nominee' : 'Edit Nominee'}
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={(e) => {
               e.preventDefault();
-              if (editingProduct?.isNewProduct) {
-                handleProductSubmit(e);
-              } else if (editingProduct) {
-                handleUpdateProduct(editingProduct.id);
+              if (editingNominee?.isNewNominee) {
+                handleNomineeSubmit(e);
+              } else if (editingNominee) {
+                handleUpdateNominee(editingNominee.id);
               }
             }}>
               <Form.Group className="mb-3">
-                <Form.Label>Product Name</Form.Label>
+                <Form.Label>Nominee Name</Form.Label>
                 <Form.Control
                   type="text"
-                  value={editingProduct ? editingProduct.name : ''}
+                  value={editingNominee ? editingNominee.name : ''}
                   onChange={(e) => {
-                    if (editingProduct?.isNewProduct) {
-                      setEditingProduct({ ...editingProduct, name: e.target.value });
-                    } else if (editingProduct) {
-                      setEditingProduct({ ...editingProduct, name: e.target.value });
+                    if (editingNominee?.isNewNominee) {
+                      setEditingNominee({ ...editingNominee, name: e.target.value });
+                    } else if (editingNominee) {
+                      setEditingNominee({ ...editingNominee, name: e.target.value });
                     }
                   }}
                   required
@@ -631,12 +631,12 @@ const Admin = () => {
                 <Form.Control
                   as="textarea"
                   rows={3}
-                  value={editingProduct ? editingProduct.description : ''}
+                  value={editingNominee ? editingNominee.description : ''}
                   onChange={(e) => {
-                    if (editingProduct?.isNewProduct) {
-                      setEditingProduct({ ...editingProduct, description: e.target.value });
-                    } else if (editingProduct) {
-                      setEditingProduct({ ...editingProduct, description: e.target.value });
+                    if (editingNominee?.isNewNominee) {
+                      setEditingNominee({ ...editingNominee, description: e.target.value });
+                    } else if (editingNominee) {
+                      setEditingNominee({ ...editingNominee, description: e.target.value });
                     }
                   }}
                 />
@@ -644,12 +644,12 @@ const Admin = () => {
               <Form.Group className="mb-3">
                 <Form.Label>Category</Form.Label>
                 <Form.Select
-                  value={editingProduct?.isNewProduct ? (selectedCategoryId || '') : (editingProduct?.category_id || '')}
+                  value={editingNominee?.isNewNominee ? (selectedCategoryId || '') : (editingNominee?.category_id || '')}
                   onChange={(e) => {
-                    if (editingProduct?.isNewProduct) {
-                      setEditingProduct({ ...editingProduct, category_id: e.target.value });
-                    } else if (editingProduct) {
-                      setEditingProduct({ ...editingProduct, category_id: e.target.value });
+                    if (editingNominee?.isNewNominee) {
+                      setEditingNominee({ ...editingNominee, category_id: e.target.value });
+                    } else if (editingNominee) {
+                      setEditingNominee({ ...editingNominee, category_id: e.target.value });
                     }
                   }}
                   required
@@ -712,12 +712,12 @@ const Admin = () => {
                       <Spinner animation="border" size="sm" className="ms-2" />
                     )}
                   </div>
-                  {(tempImagePreview || (editingProduct?.image_url && editingProduct.image_url !== 'temp-preview')) && (
+                  {(tempImagePreview || (editingNominee?.image_url && editingNominee.image_url !== 'temp-preview')) && (
                     <div className="mt-2">
                       <img
-                        src={tempImagePreview || (editingProduct.image_url.startsWith('http') ?
-                          editingProduct.image_url :
-                          `http://localhost:5001${editingProduct.image_url}`)}
+                        src={tempImagePreview || (editingNominee.image_url.startsWith('http') ?
+                          editingNominee.image_url :
+                          `http://localhost:5001${editingNominee.image_url}`)}
                         alt="Preview"
                         style={{ maxWidth: '200px', maxHeight: '150px' }}
                         className="img-thumbnail"
@@ -729,7 +729,7 @@ const Admin = () => {
                         onClick={() => {
                           setTempImageFile(null);
                           setTempImagePreview('');
-                          setEditingProduct(prev => ({ ...prev, image_url: '' }));
+                          setEditingNominee(prev => ({ ...prev, image_url: '' }));
                         }}
                         title="Remove image"
                       >
@@ -744,24 +744,24 @@ const Admin = () => {
                   <Form.Control
                     type="url"
                     placeholder="https://example.com/image.jpg"
-                    value={editingProduct ? editingProduct.image_url : ''}
+                    value={editingNominee ? editingNominee.image_url : ''}
                     onChange={(e) => {
-                      if (editingProduct?.isNewProduct) {
-                        setEditingProduct({ ...editingProduct, image_url: e.target.value });
-                      } else if (editingProduct) {
-                        setEditingProduct({ ...editingProduct, image_url: e.target.value });
+                      if (editingNominee?.isNewNominee) {
+                        setEditingNominee({ ...editingNominee, image_url: e.target.value });
+                      } else if (editingNominee) {
+                        setEditingNominee({ ...editingNominee, image_url: e.target.value });
                       }
                       // Clear temporary image when URL is changed
                       setTempImageFile(null);
                       setTempImagePreview('');
                     }}
                   />
-                  {editingProduct?.image_url && editingProduct.image_url !== 'temp-preview' && (
+                  {editingNominee?.image_url && editingNominee.image_url !== 'temp-preview' && (
                     <div className="mt-2">
                       <img
-                        src={editingProduct.image_url.startsWith('http') ?
-                          editingProduct.image_url :
-                          `http://localhost:5001${editingProduct.image_url}`}
+                        src={editingNominee.image_url.startsWith('http') ?
+                          editingNominee.image_url :
+                          `http://localhost:5001${editingNominee.image_url}`}
                         alt="Preview"
                         style={{ maxWidth: '200px', maxHeight: '150px' }}
                         className="img-thumbnail"
@@ -775,35 +775,35 @@ const Admin = () => {
                 <Form.Control
                   type="url"
                   placeholder="https://www.youtube.com/watch?v=..."
-                  value={editingProduct ? editingProduct.youtube_url || '' : ''}
+                  value={editingNominee ? editingNominee.youtube_url || '' : ''}
                   onChange={(e) => {
-                    if (editingProduct?.isNewProduct) {
-                      setEditingProduct({ ...editingProduct, youtube_url: e.target.value });
-                    } else if (editingProduct) {
-                      setEditingProduct({ ...editingProduct, youtube_url: e.target.value });
+                    if (editingNominee?.isNewNominee) {
+                      setEditingNominee({ ...editingNominee, youtube_url: e.target.value });
+                    } else if (editingNominee) {
+                      setEditingNominee({ ...editingNominee, youtube_url: e.target.value });
                     }
                   }}
                 />
                 <Form.Text className="text-muted">
-                  Add a YouTube video URL for this product
+                  Add a YouTube video URL for this nominee
                 </Form.Text>
               </Form.Group>
               <div className="d-flex justify-content-between">
-                <Button variant="secondary" onClick={closeProductModal}>
+                <Button variant="secondary" onClick={closeNomineeModal}>
                   Cancel
                 </Button>
                 <div>
-                  {!editingProduct?.isNewProduct && (
+                  {!editingNominee?.isNewNominee && (
                     <Button
                       variant="danger"
                       className="me-2"
-                      onClick={() => handleDeleteProduct(editingProduct.id)}
+                      onClick={() => handleDeleteNominee(editingNominee.id)}
                     >
                       Delete
                     </Button>
                   )}
                   <Button type="submit" variant="primary">
-                    {editingProduct?.isNewProduct ? 'Create' : 'Update'}
+                    {editingNominee?.isNewNominee ? 'Create' : 'Update'}
                   </Button>
                 </div>
               </div>

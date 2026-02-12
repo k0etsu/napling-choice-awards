@@ -77,7 +77,7 @@ const Results = () => {
             <Card.Body>
               {results[category.id] && results[category.id].length > 0 ? (
                 <>
-                  {/* Display winning product(s) image(s) if available */}
+                  {/* Display winning nominee(s) image(s) if available */}
                     <div className="text-center mb-4">
                       {(() => {
                         const maxVotes = Math.max(...results[category.id].map(r => r.vote_count));
@@ -93,31 +93,31 @@ const Results = () => {
                                 </h4>
                                 <div className="d-flex justify-content-center gap-3 flex-wrap">
                                   {winners.map((winner, index) => (
-                                    <div key={winner.product_id} className="text-center">
-                                      {winner.product?.image_url && (
+                                    <div key={winner.nominee_id} className="text-center">
+                                      {winner.nominee?.image_url && (
                                         <img
-                                          src={winner.product.image_url}
-                                          alt={winner.product.name}
+                                          src={winner.nominee.image_url}
+                                          alt={winner.nominee.name}
                                           className="winner-image mb-2"
                                           style={{ maxWidth: '120px', maxHeight: '120px' }}
                                         />
                                       )}
-                                      <div className="fw-bold">{winner.product.name}</div>
+                                      <div className="fw-bold">{winner.nominee.name}</div>
                                     </div>
                                   ))}
                                 </div>
                               </div>
                             ) : (
                               <div>
-                                {results[category.id][0]?.product?.image_url && (
+                                {results[category.id][0]?.nominee?.image_url && (
                                   <img
-                                    src={results[category.id][0].product.image_url}
-                                    alt={results[category.id][0].product.name}
+                                    src={results[category.id][0].nominee.image_url}
+                                    alt={results[category.id][0].nominee.name}
                                     className="winner-image mb-3"
                                   />
                                 )}
                                 <h4 className="mt-2 winner-title">
-                                  🏆 Winner: {results[category.id][0].product.name}
+                                  🏆 Winner: {results[category.id][0].nominee.name}
                                 </h4>
                               </div>
                             )}
@@ -129,7 +129,7 @@ const Results = () => {
                   <Table striped bordered hover className="results-table">
                   <thead>
                     <tr>
-                      <th>Product</th>
+                      <th>Nominee</th>
                       <th style={{ width: '80px' }}>Votes</th>
                       <th style={{ width: '50%' }}>Vote Percentage</th>
                     </tr>
@@ -145,9 +145,9 @@ const Results = () => {
                         const isWinner = result.vote_count === maxVotes;
 
                         return (
-                          <tr key={result.product_id}>
+                          <tr key={result.nominee_id}>
                             <td>
-                              <strong>{result.product?.name || 'Unknown Product'}</strong>
+                              <strong>{result.nominee?.name || 'Unknown Nominee'}</strong>
                               {isWinner && isTie && (
                                 <span className="badge bg-warning ms-2">🏆 TIED</span>
                               )}
@@ -182,7 +182,7 @@ const Results = () => {
               ) : (
                 <div className="text-center py-4">
                   <h4>No votes recorded yet</h4>
-                  <p className="text-muted">Voting results will appear here once users start voting.</p>
+                  <p className="text-muted">Voting results will appear here once users start voting for nominees.</p>
                 </div>
               )}
             </Card.Body>

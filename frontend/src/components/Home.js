@@ -6,7 +6,7 @@ import './Home.css';
 
 const Home = () => {
   const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState({});
+  const [nominees, setNominees] = useState({});
   const [userVotes, setUserVotes] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -20,22 +20,22 @@ const Home = () => {
 
   const fetchData = async () => {
     try {
-      const [categoriesRes, productsRes] = await Promise.all([
+      const [categoriesRes, nomineesRes] = await Promise.all([
         axios.get('/api/categories'),
-        axios.get('/api/products')
+        axios.get('/api/nominees')
       ]);
 
       setCategories(categoriesRes.data);
 
-      // Group products by category
-      const groupedProducts = {};
-      productsRes.data.forEach(product => {
-        if (!groupedProducts[product.category_id]) {
-          groupedProducts[product.category_id] = [];
+      // Group nominees by category
+      const groupedNominees = {};
+      nomineesRes.data.forEach(nominee => {
+        if (!groupedNominees[nominee.category_id]) {
+          groupedNominees[nominee.category_id] = [];
         }
-        groupedProducts[product.category_id].push(product);
+        groupedNominees[nominee.category_id].push(nominee);
       });
-      setProducts(groupedProducts);
+      setNominees(groupedNominees);
 
       // Fetch user votes for each category
       const votePromises = categoriesRes.data.map(category =>
@@ -114,7 +114,7 @@ const Home = () => {
     return (
       <Container className="text-center py-5">
         <Spinner animation="border" className="loading-spinner" />
-        <p className="mt-3">Loading categories and products...</p>
+        <p className="mt-3">Loading categories and nominees...</p>
       </Container>
     );
   }
@@ -123,7 +123,7 @@ const Home = () => {
     <Container>
       <div className="text-center mb-5">
         <h1 className="display-4">Welcome to Napling Choice Awards</h1>
-        <p className="lead">Vote for your favorite products in each category</p>
+        <p className="lead">Vote for your favorite nominees in each category</p>
       </div>
 
       <div className="floating-alerts">
@@ -144,30 +144,30 @@ const Home = () => {
           )}
 
           <Row className="g-3">
-            {products[category.id]?.map((product) => {
+            {nominees[category.id]?.map((nominee) => {
               const userVote = userVotes[category.id];
-              const isSelected = userVote && userVote.product_id === product.id;
+              const isSelected = userVote && userVote.product_id === nominee.id;
 
               return (
-                <Col xs={12} sm={6} md={4} lg={3} key={`product-${product.id}`} className="mb-3">
-                  <Card className={`product-card h-100 ${isSelected ? 'border-primary border-2' : ''}`}>
-                    {product.image_url && (
+                <Col xs={12} sm={6} md={4} lg={3} key={`nominee-${nominee.id}`} className="mb-3">
+                  <Card className={`nominee-card h-100 ${isSelected ? 'border-primary border-2' : ''}`}>
+                    {nominee.image_url && (
                       <Card.Img
                         variant="top"
-                        src={product.image_url.startsWith('http') ? product.image_url : `http://localhost:5001${product.image_url}`}
-                        className="product-image"
-                        alt={product.name}
+                        src={nominee.image_url.startsWith('http') ? nominee.image_url : `http://localhost:5001${nominee.image_url}`}
+                        className="nominee-image"
+                        alt={nominee.name}
                       />
                     )}
                     <Card.Body className="d-flex flex-column">
                       <Card.Title className="d-flex justify-content-between align-items-start">
-                        <span>{product.name}</span>
+                        <span>{nominee.name}</span>
                         <div className="d-flex gap-2">
-                          {product.youtube_url && (
+                          {nominee.youtube_url && (
                             <Button
                               variant="outline-danger"
                               size="sm"
-                              onClick={() => handleVideoClick(product.youtube_url, product.name)}
+                              onClick={() => handleVideoClick(nominee.youtube_url, nominee.name)}
                               className="video-button"
                               title="Watch video"
                             >
@@ -177,11 +177,11 @@ const Home = () => {
                         </div>
                       </Card.Title>
                       <Card.Text className="flex-grow-1">
-                        {product.description}
+                        {nominee.description}
                       </Card.Text>
                       <Button
                         variant={isSelected ? "success" : "primary"}
-                        onClick={() => handleVote(product.id, category.id)}
+                        onClick={() => handleVote(nominee.id, category.id)}
                         disabled={category.voting_locked}
                         className="vote-button mt-auto"
                       >
@@ -200,8 +200,8 @@ const Home = () => {
             })}
           </Row>
 
-          {products[category.id]?.length === 0 && (
-            <p className="text-muted">No products available in this category yet.</p>
+          {nominees[category.id]?.length === 0 && (
+            <p className="text-muted">No nominees available in this category yet.</p>
           )}
         </div>
       ))}
