@@ -30,13 +30,6 @@ jwt = JWTManager(app)
 allowed_origins = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
 CORS(app, origins=allowed_origins, methods=['GET', 'POST', 'PUT', 'DELETE'])
 
-# Rate limiting
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=[f"{os.getenv('RATE_LIMIT_PER_MINUTE', '60')}/minute"]
-)
-
 # Configure caching
 config = {
     "CACHE_TYPE": "SimpleCache",  # Use RedisCache for production
@@ -87,6 +80,31 @@ admin_users = db['admin_users']
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_client_ip():
+    """Get the real client IP address, accounting for proxies"""
+    # Check for X-Forwarded-For header (set by nginx/proxy)
+    if request.headers.get('X-Forwarded-For'):
+        # X-Forwarded-For can contain multiple IPs, take the first one (original client)
+        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+
+    # Check for X-Real-IP header (also set by nginx)
+    if request.headers.get('X-Real-IP'):
+        return request.headers.get('X-Real-IP').strip()
+
+    # Fall back to remote_addr (direct connection)
+    return request.remote_addr
+
+# Rate limiting
+def get_rate_limit_key():
+    """Get the proper key for rate limiting based on real client IP"""
+    return get_client_ip()
+
+limiter = Limiter(
+    app=app,
+    key_func=get_rate_limit_key,
+    default_limits=[f"{os.getenv('RATE_LIMIT_PER_MINUTE', '60')}/minute"]
+)
 
 def validate_object_id(id_string):
     """Validate MongoDB ObjectId format"""
@@ -237,6 +255,7 @@ def verify_token():
 
 @app.route('/api/upload', methods=['POST'])
 @limiter.limit("10/minute")
+@jwt_required()
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -556,13 +575,13 @@ def cast_vote():
     # Check for existing vote by this IP
     existing_vote = votes.find_one({
         'category_id': data['category_id'],
-        'voter_ip': request.remote_addr
+        'voter_ip': get_client_ip()
     })
 
     vote_data = {
         'product_id': data['product_id'],
         'category_id': data['category_id'],
-        'voter_ip': request.remote_addr,
+        'voter_ip': get_client_ip(),
         'created_at': datetime.datetime.now(datetime.UTC)
     }
 
@@ -591,7 +610,7 @@ def get_user_vote(category_id):
     # Get user's current vote for this category
     existing_vote = votes.find_one({
         'category_id': category_id,
-        'voter_ip': request.remote_addr
+        'voter_ip': get_client_ip()
     }, {'_id': 0})
 
     if existing_vote:
