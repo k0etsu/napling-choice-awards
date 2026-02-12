@@ -69,7 +69,7 @@ const Home = () => {
     }
   };
 
-  const handleVote = async (productId, categoryId) => {
+  const handleVote = async (nomineeId, categoryId) => {
     try {
       const category = categories.find(c => c.id === categoryId);
       if (category && category.voting_locked) {
@@ -79,7 +79,7 @@ const Home = () => {
       }
 
       const response = await axios.post('/api/vote', {
-        product_id: productId,
+        nominee_id: nomineeId,
         category_id: categoryId
       });
 
@@ -100,8 +100,8 @@ const Home = () => {
     }
   };
 
-  const handleVideoClick = (videoUrl, productName) => {
-    setSelectedVideo({ url: videoUrl, name: productName });
+  const handleVideoClick = (videoUrl, nomineeName) => {
+    setSelectedVideo({ url: videoUrl, name: nomineeName });
     setShowVideoModal(true);
   };
 
@@ -146,7 +146,7 @@ const Home = () => {
           <Row className="g-3">
             {nominees[category.id]?.map((nominee) => {
               const userVote = userVotes[category.id];
-              const isSelected = userVote && userVote.product_id === nominee.id;
+              const isSelected = userVote && userVote.nominee_id === nominee.id;
 
               return (
                 <Col xs={12} sm={6} md={4} lg={3} key={`nominee-${nominee.id}`} className="mb-3">
@@ -217,7 +217,7 @@ const Home = () => {
         show={showVideoModal}
         handleClose={handleCloseVideoModal}
         videoUrl={selectedVideo.url}
-        productName={selectedVideo.name}
+        nomineeName={selectedVideo.name}
       />
     </Container>
   );
